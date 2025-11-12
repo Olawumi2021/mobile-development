@@ -1,0 +1,23 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn.lock
+
+# iOS
+Pods/
+build/
+DerivedData/
+fastlane/report.xml
+fastlane/test_output/
+
+# Android
+**/build/
+.gradle/
+.idea/
+local.properties
+*.keystore
+*.jks
+
+# Misc
+.DS_Store
+.env
