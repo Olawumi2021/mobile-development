@@ -1,0 +1,67 @@
+default_platform(:ios)
+
+platform :ios do
+  lane :setup do
+    sh "bundle install"
+    cocoapods(clean_install: true)
+  end
+
+  lane :verify do
+    sh "swiftlint --quiet || true"
+    sh "bundle exec bundler-audit check --update || true"
+  end
+
+  lane :test do
+    scan(
+      scheme: "App",             # <-- replace with your Xcode scheme name
+      devices: ["iPhone 15"],
+      clean: true
+    )
+  end
+
+  lane :beta do
+    match(type: "appstore", readonly: true)
+    increment_build_number(xcodeproj: "App.xcodeproj")
+    gym(scheme: "App", export_method: "app-store")
+    pilot(distribute_external: false)
+  end
+
+  lane :release do
+    match(type: "appstore", readonly: true)
+    gym(scheme: "App", export_method: "app-store")
+    deliver(submit_for_review: true, force: true, skip_screenshots: true, skip_metadata: true)
+  end
+end
+
+platform :android do
+  lane :setup do
+    sh "./gradlew --no-daemon clean"
+  end
+
+  lane :verify do
+    sh "./gradlew --no-daemon lint"
+    sh "gitleaks detect --no-banner || true"
+  end
+
+  lane :test do
+    sh "./gradlew --no-daemon testDebug"
+  end
+
+  lane :beta do
+    gradle(task: "bundle", build_type: "Release")
+    supply(
+      track: "internal",
+      aab: Dir["**/build/outputs/**/*.aab"].first,
+      json_key_data: ENV['PLAY_JSON_KEY']
+    )
+  end
+
+  lane :release do
+    gradle(task: "bundle", build_type: "Release")
+    supply(
+      track: "production",
+      aab: Dir["**/build/outputs/**/*.aab"].first,
+      json_key_data: ENV['PLAY_JSON_KEY']
+    )
+  end
+end
